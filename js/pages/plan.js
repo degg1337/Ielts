@@ -159,11 +159,11 @@
           const d = parse(key);
           const list = byDate[key] || [];
           cols += `<div class="week-day${key === today ? " today" : ""}${key === ui.selected ? " selected" : ""}${key === exam ? " exam" : ""}">
-            <button type="button" class="week-head" data-date="${key}" aria-pressed="${key === ui.selected}" aria-label="${esc(dayCellLabel(key, list))}">
-              <span>${WD[i]}</span><b>${d.getDate()}</b>${key === exam ? "<span>🎯</span>" : ""}
+            <button type="button" class="week-head" data-date="${key}" aria-pressed="${key === ui.selected}">
+              <span>${WD[i]}</span><b>${d.getDate()}</b>${key === exam ? '<span aria-hidden="true">🎯</span>' : ""}<span class="sr-only">, ${esc(dayCellLabel(key, list))}</span>
             </button>
             <ul class="task-list">${list.map((t) => taskItem(t, true)).join("")}</ul>
-            <button type="button" class="btn sm ghost week-add" data-add="${key}" aria-label="Добавить задачу на ${esc(human(key))}">+ задача</button>
+            <button type="button" class="btn sm ghost week-add" data-add="${key}">+ задача<span class="sr-only"> на ${esc(human(key))}</span></button>
           </div>`;
         }
         body.innerHTML = `<div class="cal-grid week">${cols}</div>`;

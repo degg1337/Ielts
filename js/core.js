@@ -454,9 +454,10 @@
     }
 
     App.pages[page](param);
-    app.classList.remove("page-enter");
-    void app.offsetWidth; // перезапуск анимации появления
-    app.classList.add("page-enter");
+    // Анимация появления через Web Animations API: без принудительного пересчёта вёрстки.
+    if (app.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      app.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 350, easing: "cubic-bezier(.2, .7, .2, 1)" });
+    }
     const title = $("h1", app);
     document.title = (title && page !== "home" ? title.textContent + " — " : "") + "IELTS Prep";
     window.scrollTo(0, 0);

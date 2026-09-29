@@ -272,7 +272,7 @@ main {
 }
 @media (max-width: 640px) { main { padding: 22px 16px 48px; } }
 
-.page-enter { animation: pageIn .35s var(--ease); }
+
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 .card {

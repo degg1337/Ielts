@@ -197,6 +197,7 @@
       cb.closest(".task").classList.toggle("done", cb.checked);
     });
     const scroller = $(".heatmap-scroll");
-    if (scroller) scroller.scrollLeft = scroller.scrollWidth; // на телефоне показываем последние недели
+    // На телефоне показываем последние недели (в следующем кадре, после отрисовки).
+    if (scroller) requestAnimationFrame(() => { scroller.scrollLeft = scroller.scrollWidth; });
   };
 })();
