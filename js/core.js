@@ -14,7 +14,6 @@
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const norm = (s) => String(s).toLowerCase().trim().replace(/\s+/g, " ").replace(/[.,]$/, "");
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function shuffle(arr) {
@@ -97,6 +96,11 @@
     }
   };
   window.addEventListener("pagehide", store.flush);
+  // Сайт открыт в двух вкладках: если другая вкладка изменила данные, забываем устаревшую копию из памяти.
+  window.addEventListener("storage", (e) => {
+    if (!e.key) { cache.clear(); return; }
+    if (e.key.startsWith(PREFIX) && !dirty.has(e.key.slice(PREFIX.length))) cache.delete(e.key.slice(PREFIX.length));
+  });
   document.addEventListener("visibilitychange", () => { if (document.hidden) store.flush(); });
 
   /* ---------- Уборка при уходе со страницы ---------- */
@@ -409,12 +413,20 @@
     });
   }
 
+  // Ссылка «Перейти к содержимому» не должна менять адрес (иначе сработает роутер).
+  $(".skip-link").addEventListener("click", (e) => { e.preventDefault(); app.focus(); });
+
   /* ---------- Меню ---------- */
   function setMenu(open) {
     document.body.classList.toggle("menu-open", open);
     $("#menuBtn").setAttribute("aria-expanded", String(open));
   }
-  $("#menuBtn").addEventListener("click", () => setMenu(!document.body.classList.contains("menu-open")));
+  $("#menuBtn").addEventListener("click", () => {
+    const open = !document.body.classList.contains("menu-open");
+    setMenu(open);
+    // Кнопка стоит в разметке после ссылок — переводим фокус в открытое меню, чтобы Tab шёл по пунктам.
+    if (open) ($("#nav a.active") || $("#nav a")).focus();
+  });
   $("#navBackdrop").addEventListener("click", () => setMenu(false));
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && document.body.classList.contains("menu-open")) {
@@ -444,7 +456,7 @@
   renderThemeBtn();
 
   Object.assign(App, {
-    app, esc, $, $$, norm, pick, shuffle, fmtTime, bar, download, nextFrame, sleep,
+    app, esc, $, $$, norm, pick, shuffle, bar, download, sleep,
     store, onLeave, onKey, makeTimer, rawToBand, saveBest,
     renderQuestions, checkQuestions, resetQuestions, tabs,
     voices, speak, beep

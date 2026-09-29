@@ -236,8 +236,7 @@
     $("#myClearAll").onclick = () => {
       const all = V.customWords();
       if (!confirm(`Удалить все свои слова (${all.length})? Сначала можно сохранить их через «Экспорт CSV».`)) return;
-      all.forEach((w) => { delete srs[w.id]; });
-      store.set("srs", srs);
+      V.forget(srs, all.map((w) => w.id));
       V.saveCustom([]);
       refreshTopics();
       renderList();
@@ -246,8 +245,7 @@
       const b = e.target.closest("[data-del]");
       if (!b || !confirm("Удалить слово?")) return;
       V.saveCustom(V.customWords().filter((w) => w.id !== b.dataset.del));
-      delete srs[b.dataset.del];
-      store.set("srs", srs);
+      V.forget(srs, [b.dataset.del]);
       renderList();
     });
 
@@ -341,7 +339,7 @@
             <div class="pstat ${errors.length ? "bad" : ""}"><b>${errors.length}</b><span>строк с ошибками</span></div>
           </div>
           ${ok.length ? `<details open><summary>Будут добавлены (${ok.length})</summary>
-            <div class="table-wrap"><table class="data words-table"><thead><tr><th scope="col">Слово</th><th scope="col">Перевод</th><th scope="col">Пример</th>${parsed.hasTopicCol ? '<th scope="col">Тема в файле</th>' : ""}</tr></thead><tbody>
+            <div class="table-wrap" tabindex="0" role="region" aria-label="Таблица"><table class="data words-table"><thead><tr><th scope="col">Слово</th><th scope="col">Перевод</th><th scope="col">Пример</th>${parsed.hasTopicCol ? '<th scope="col">Тема в файле</th>' : ""}</tr></thead><tbody>
             ${ok.slice(0, PREVIEW_ROWS).map((r) => `<tr><td><b lang="en">${esc(r.w)}</b>${r.ipa ? `<div class="ipa small">${esc(r.ipa)}</div>` : ""}</td><td>${esc(r.ru)}</td><td class="muted" lang="en">${esc(r.ex)}</td>${parsed.hasTopicCol ? `<td>${esc(r.topic)}</td>` : ""}</tr>`).join("")}
             </tbody></table></div>${more(ok.length)}</details>` : ""}
           ${dups.length ? `<details><summary>Дубли (${dups.length})</summary><ul class="issue-list">
@@ -406,7 +404,4 @@
     if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
     return many;
   }
-
-  // Для проверок и отладки.
-  App.vocabImport = { parseLine, parseText, splitCsv };
 })();

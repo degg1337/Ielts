@@ -76,9 +76,18 @@
       st.box = 1;
       st.due = now;
     }
-    srs[id] = st;
-    store.set("srs", srs);
+    save(srs, (latest) => { latest[id] = st; });
   }
+
+  // Изменения пишем в самую свежую версию прогресса (её могла обновить другая вкладка),
+  // а копию страницы обновляем, чтобы она видела свои же ответы.
+  function save(srs, change) {
+    const latest = store.get("srs", {});
+    change(latest);
+    if (latest !== srs) change(srs);
+    store.set("srs", latest);
+  }
+  const forget = (srs, ids) => save(srs, (s) => ids.forEach((id) => { delete s[id]; }));
 
   function stats(words, srs) {
     let learned = 0, learning = 0;
@@ -122,8 +131,8 @@
   }
 
   App.vocab = {
-    LEARNED_BOX, CUSTOM_ID, builtinIds,
-    topics, knownWords, customWords, saveCustom, userTopicId,
-    loadSrs, wordState, recordAnswer, stats, weightedSample, whenText, statusBadge
+    builtinIds,
+    topics, knownWords, customWords, saveCustom,
+    loadSrs, wordState, recordAnswer, forget, stats, weightedSample, whenText, statusBadge
   };
 })();

@@ -76,7 +76,7 @@
       const p = list.find((x) => x.id === id);
       let html = `<p><b>You should spend about ${minutes} minutes on this task.</b></p><p>${esc(p.prompt)}</p>`;
       if (p.table) {
-        html += `<div class="table-wrap"><table class="data"><tr>${p.table.head.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr>
+        html += `<div class="table-wrap" tabindex="0" role="region" aria-label="Таблица"><table class="data"><tr>${p.table.head.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr>
           ${p.table.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div>`;
       }
       html += `<p class="muted small">Write at least ${minWords} words.</p>`;

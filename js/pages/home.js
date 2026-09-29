@@ -66,7 +66,7 @@
       </div>
 
       <h2>Формат экзамена</h2>
-      <div class="card table-wrap">
+      <div class="card table-wrap" tabindex="0" role="region" aria-label="Формат экзамена">
         <table class="data">
           <thead><tr><th scope="col">Часть</th><th scope="col">Время</th><th scope="col">Задания</th></tr></thead>
           <tbody>

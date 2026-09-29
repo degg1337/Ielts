@@ -13,7 +13,7 @@
     if (!words.length) { container.innerHTML = `<p class="muted">${empty}</p>`; return; }
     let shown = 0;
     container.innerHTML = `
-      <div class="table-wrap"><table class="data words-table">
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Таблица"><table class="data words-table">
         <thead><tr><th scope="col">Слово</th><th scope="col">Перевод</th><th scope="col">Пример</th><th scope="col">Статус</th>${deletable ? '<th scope="col"><span class="sr-only">Действия</span></th>' : ""}</tr></thead>
         <tbody></tbody></table></div>
       <div class="row center mt"><button class="btn secondary sm more-btn">Показать ещё</button></div>`;
@@ -151,7 +151,7 @@
         flipped = false;
         body.innerHTML = head + `
           <div class="flash-wrap">
-            <div class="flash" id="vCard" tabindex="0" role="button" aria-label="Карточка: ${esc(w.w)}. Нажмите, чтобы перевернуть">
+            <div class="flash" id="vCard" tabindex="0" role="button" aria-describedby="vHint">
               <div class="flash-face flash-front">
                 <span class="badge">${topic.icon} ${esc(topic.name)}</span>
                 <div class="word" lang="en">${esc(w.w)}</div>
@@ -169,7 +169,7 @@
               <button class="btn icon-btn secondary" id="vSay" aria-label="Произнести слово" title="Произнести">🔊</button>
               <button class="btn success" id="vYes">✓ Знаю</button>
             </div>
-            <p class="muted small center"><kbd>Пробел</kbd> — перевернуть · <kbd>←</kbd> не знаю · <kbd>→</kbd> знаю</p>
+            <p class="muted small center" id="vHint"><kbd>Пробел</kbd> — перевернуть · <kbd>←</kbd> не знаю · <kbd>→</kbd> знаю</p>
           </div>`;
         const card = $("#vCard");
         card.onclick = flip;
