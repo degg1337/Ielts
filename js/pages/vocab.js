@@ -1,7 +1,7 @@
 /* Тренажёр слов: карточки, тест, темы и прогресс. Вкладка «Мои слова» грузится отдельно (vocab-mine.js). */
 (() => {
   "use strict";
-  const { app, esc, $, $$, norm, shuffle, store, tabs, bar, speak, onKey, onLeave } = App;
+  const { app, esc, $, $$, norm, shuffle, store, tabs, bar, speak, onKey, onLeave, activity } = App;
   const V = App.vocab;
 
   const SESSION_SIZE = 20;
@@ -191,6 +191,7 @@
       function answer(knew) {
         const w = queue.shift();
         V.recordAnswer(srs, w.id, knew);
+        if (knew) activity.word(w.id);
         if (knew) done++;
         // Незнакомое слово возвращается через пару карточек.
         else queue.splice(Math.min(3, queue.length), 0, w);
@@ -265,6 +266,7 @@
         const ok = options[i] === w.ru;
         if (ok) score++; else mistakes.push(w);
         V.recordAnswer(srs, w.id, ok, { fromQuiz: true });
+        if (ok) activity.word(w.id);
         $$(".option", body).forEach((b, k) => {
           b.disabled = true;
           if (options[k] === w.ru) b.classList.add("correct");
@@ -281,6 +283,7 @@
       }
 
       function finish() {
+        activity.task("vocab-quiz");
         const pct = Math.round((score / questions.length) * 100);
         body.innerHTML = `
           <div class="card empty-state">

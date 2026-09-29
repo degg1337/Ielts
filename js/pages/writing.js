@@ -1,7 +1,7 @@
 /* Раздел Writing: задания Task 1/2, таймер, счётчик слов, черновики. */
 (() => {
   "use strict";
-  const { app, esc, $, pick, store, tabs, makeTimer } = App;
+  const { app, esc, $, pick, store, tabs, makeTimer, activity } = App;
 
   App.pages.writing = (param) => {
     const task = param === "task1" ? "task1" : "task2";
@@ -67,6 +67,7 @@
       const n = (text.value.match(/[A-Za-zÀ-ÿ0-9'’-]+/g) || []).length;
       count.textContent = `${n} / ${minWords}+ слов`;
       count.className = "wordcount " + (n >= minWords ? "ok" : n > 0 ? "low" : "");
+      return n;
     };
 
     const load = (id) => {
@@ -90,7 +91,8 @@
 
     // Черновик пишется в хранилище с задержкой (store.set сам откладывает запись).
     text.addEventListener("input", () => {
-      updateCount();
+      // Эссе нужной длины засчитывается в серию один раз в день — только когда его пишут, а не просто открывают.
+      if (updateCount() >= minWords) activity.task("writing:" + current, { once: true });
       const drafts = { ...store.get("drafts", {}) };
       if (text.value.trim()) drafts[current] = text.value; else delete drafts[current];
       store.set("drafts", drafts);

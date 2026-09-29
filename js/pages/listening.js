@@ -3,7 +3,7 @@
    «Тренировка» — пауза, переход по репликам, транскрипт после ответа. */
 (() => {
   "use strict";
-  const { app, esc, $, $$, tabs, bar, checkQuestions, resetQuestions, rawToBand, saveBest, onLeave, onKey } = App;
+  const { app, esc, $, $$, tabs, bar, checkQuestions, resetQuestions, rawToBand, saveBest, onLeave, onKey, activity } = App;
   const { BASE_RATE, createEngine, createSet, estimateMinutes, voiceStatus } = App.listen;
   const set = createSet(LISTENING);
   const PARTS = set.parts;
@@ -163,6 +163,7 @@
       });
       const band = rawToBand(score, BAND_TABLES.listening);
       saveBest("listening:exam", score, TOTAL);
+      activity.task("listening");
       $("#lResult").innerHTML = `<div class="result">Результат: ${score} / ${TOTAL} — Band ${band.toFixed(1)}</div>
         <p class="muted small">По частям: ${perPart.map((s, i) => `Part ${i + 1} — ${s}`).join(", ")}. Правильные ответы и тексты записей — под каждой частью.</p>`;
       $("#lCheck").disabled = true;
@@ -299,6 +300,7 @@
     $("#pCheck").onclick = () => {
       const { score, total } = checkQuestions($("#pQs"), part.questions, { prefix: `p${pi}q` });
       saveBest("listening:" + part.id, score, total);
+      activity.task("listening");
       $("#pResult").innerHTML = `<div class="result">Результат: ${score} / ${total}</div>`;
       if (!checked) { checked = true; showScript(); }
     };

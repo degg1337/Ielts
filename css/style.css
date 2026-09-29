@@ -1023,3 +1023,49 @@ kbd {
   animation: pageIn .3s var(--ease);
 }
 @media (max-width: 640px) { .exam-bar { top: 64px; } }
+
+/* ---------- Главная: серия и «Сегодня» ---------- */
+.home-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
+.home-top .card { margin: 0; }
+@media (max-width: 860px) { .home-top { grid-template-columns: minmax(0, 1fr); } }
+.streak-top { display: flex; gap: 14px; align-items: center; }
+.flame { font-size: 2.6rem; line-height: 1; animation: flicker 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.flame.off { filter: grayscale(1); opacity: .45; animation: none; }
+@keyframes flicker { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.08) rotate(2deg); } }
+.streak-num { font-family: var(--font-head); font-size: 1.8rem; }
+.streak-card .card-title { margin: 0; }
+.streak-card p { margin: 6px 0; }
+.today-progress { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin: 10px 0 14px; }
+.today-progress > div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.today-progress span { display: block; color: var(--muted); }
+.today-progress b { font-family: var(--font-head); font-size: 1.2rem; }
+.today-progress .progress { margin: 6px 0 0; }
+.heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heatmap { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; row-gap: 4px; width: max-content; }
+.hm-months { grid-column: 2; display: grid; grid-template-columns: repeat(26, 13px); column-gap: 3px; font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.hm-days { grid-row: 2; display: grid; grid-template-rows: repeat(7, 13px); row-gap: 3px; font-size: .68rem; color: var(--muted); line-height: 13px; }
+.hm-grid { grid-row: 2; grid-column: 2; display: grid; grid-template-rows: repeat(7, 13px); grid-auto-flow: column; grid-auto-columns: 13px; gap: 3px; }
+.hm-cell { display: inline-block; width: 13px; height: 13px; border-radius: 3px; background: var(--surface-3); }
+.hm-05 { background: color-mix(in srgb, var(--series-1) 12%, var(--surface-3)); }
+.hm-1 { background: color-mix(in srgb, var(--series-1) 35%, var(--surface-3)); }
+.hm-2 { background: color-mix(in srgb, var(--series-1) 60%, var(--surface-3)); }
+.hm-3 { background: color-mix(in srgb, var(--series-1) 82%, var(--surface-3)); }
+.hm-4 { background: var(--series-1); }
+.hm-future { background: transparent; }
+.hm-today { outline: 2px solid var(--text); outline-offset: -1px; }
+.hm-legend { display: flex; align-items: center; gap: 3px; justify-content: flex-end; font-size: .75rem; color: var(--muted); margin-top: 6px; }
+.hm-legend .hm-cell { margin: 0 1px; }
+.countdown { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--primary-soft); margin: 8px 0 12px; }
+.countdown b { font-family: var(--font-head); font-size: 2rem; color: var(--primary); line-height: 1; }
+.task-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.task { border-left: 4px solid var(--series-1); background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.task label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.task input { margin-top: 4px; flex-shrink: 0; }
+.task.done span { text-decoration: line-through; color: var(--muted); }
+.pc-1 { border-left-color: var(--series-1); } .pc-2 { border-left-color: var(--series-2); }
+.pc-3 { border-left-color: var(--series-3); } .pc-4 { border-left-color: var(--series-4); }
+.pc-5 { border-left-color: var(--series-5); } .pc-6 { border-left-color: var(--series-6); }
+.pc-7 { border-left-color: var(--series-7); } .pc-8 { border-left-color: var(--series-8); }
+
+/* Ссылки внутри текста подчёркнуты: цвет не единственный признак ссылки. */
+p a:not(.btn), li > span a:not(.btn) { text-decoration: underline; text-underline-offset: 2px; }

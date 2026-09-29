@@ -181,7 +181,11 @@
       store.set("activity", log);
       activity.streak(); // обновляет рекорд
     },
-    task(kind) { activity._update((d) => { d.t += 1; d.k = { ...(d.k || {}), [kind]: ((d.k || {})[kind] || 0) + 1 }; }); },
+    // once: засчитать такое задание только один раз за день (например, одно и то же эссе).
+    task(kind, { once = false } = {}) {
+      if (once && (activity.today().k || {})[kind]) return;
+      activity._update((d) => { d.t += 1; d.k = { ...(d.k || {}), [kind]: ((d.k || {})[kind] || 0) + 1 }; });
+    },
     word(id) {
       activity._update((d) => {
         const ids = d.wids ? d.wids.slice() : [];
