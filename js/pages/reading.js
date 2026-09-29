@@ -1,7 +1,7 @@
 /* Раздел Reading: текст, вопросы, таймер и автопроверка. */
 (() => {
   "use strict";
-  const { app, esc, $, tabs, renderQuestions, checkQuestions, resetQuestions, makeTimer, rawToBand, saveBest } = App;
+  const { app, esc, $, tabs, renderQuestions, checkQuestions, resetQuestions, makeTimer, rawToBand, saveBest, activity } = App;
 
   App.pages.reading = (param) => {
     const test = READING.find((r) => r.id === param) || READING[0];
@@ -51,6 +51,7 @@
       const { score, total } = checkQuestions(qs, test.questions);
       const band = rawToBand(Math.round((score / total) * 40), BAND_TABLES.readingAcademic);
       saveBest("reading:" + test.id, score, total);
+      activity.task("reading");
       $("#rResult").innerHTML = `<div class="result">Результат: ${score} / ${total} — примерно Band ${band.toFixed(1)}</div>
         <p class="muted small">Оценка band пересчитана пропорционально на 40 вопросов и носит ориентировочный характер.</p>`;
     }

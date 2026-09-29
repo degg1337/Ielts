@@ -14,13 +14,13 @@
       if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
     } catch (e) {}
   </script>
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <!-- Шрифты грузятся без блокировки отрисовки; пока их нет, показывается системный шрифт (font-display: swap). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Manrope:wght@700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Manrope:wght@700;800&display=swap"></noscript>
-  <script src="js/core.js?v=3" defer></script>
+  <script src="js/core.js?v=4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -29,11 +29,13 @@
       <a href="#home" class="logo"><span class="logo-mark" aria-hidden="true">I</span><span>IELTS <b>Prep</b></span><span class="sr-only">— на главную</span></a>
       <nav id="nav" aria-label="Разделы сайта">
         <a href="#home" data-route="home">Главная</a>
+        <a href="#exam" data-route="exam">Экзамен</a>
         <a href="#reading" data-route="reading">Reading</a>
         <a href="#listening" data-route="listening">Listening</a>
         <a href="#writing" data-route="writing">Writing</a>
         <a href="#speaking" data-route="speaking">Speaking</a>
         <a href="#vocab" data-route="vocab">Словарь</a>
+        <a href="#plan" data-route="plan">План</a>
         <a href="#calc" data-route="calc">Калькулятор</a>
       </nav>
       <div class="topbar-actions">

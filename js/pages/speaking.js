@@ -1,7 +1,7 @@
 /* Раздел Speaking: вопросы Part 1–3, таймер Part 2, запись ответа. */
 (() => {
   "use strict";
-  const { app, esc, $, pick, store, tabs, makeTimer, speak, beep, onLeave } = App;
+  const { app, esc, $, pick, store, tabs, makeTimer, speak, beep, onLeave, activity } = App;
 
   App.pages.speaking = (param) => {
     const part = ["part1", "part2", "part3"].includes(param) ? param : "part1";
@@ -96,7 +96,7 @@
       $("#sCue").innerHTML = `<h2 class="card-title">${esc(card.title)}</h2><p class="muted">You should say:</p><ul>${card.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
     };
     const speakTimer = makeTimer($("#sTimer"), 120, {
-      onEnd: () => { beep(); phase.textContent = "Время вышло. Отлично! Попробуйте ответить на вопросы Part 3 по этой теме."; goBtn.disabled = false; }
+      onEnd: () => { beep(); activity.task("speaking"); phase.textContent = "Время вышло. Отлично! Попробуйте ответить на вопросы Part 3 по этой теме."; goBtn.disabled = false; }
     });
     const prepTimer = makeTimer($("#sTimer"), 60, {
       onEnd: () => {
@@ -186,6 +186,7 @@
         audio.hidden = false;
         btn.textContent = "● Записать заново";
         msg.textContent = "Прослушайте себя: есть ли длинные паузы? Повторяются ли одни и те же слова?";
+        activity.task("speaking-rec", { once: true });
         release();
       };
       recorder.start();

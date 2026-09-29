@@ -3,154 +3,13 @@
    «Тренировка» — пауза, переход по репликам, транскрипт после ответа. */
 (() => {
   "use strict";
-  const { app, esc, $, $$, tabs, bar, renderQuestions, checkQuestions, resetQuestions, rawToBand, saveBest, voices, onLeave, onKey, sleep } = App;
-  const synth = window.speechSynthesis;
-  const BASE_RATE = 0.95;
-  const PARTS = LISTENING.parts;
-
-  // Номер первого вопроса каждой части (1, 11, 21, 31).
-  const starts = [];
-  let counter = 1;
-  PARTS.forEach((p) => { starts.push(counter); counter += p.questions.filter((q) => q.type !== "info").length; });
-  const TOTAL = counter - 1;
-  const range = (pi) => `${starts[pi]}–${starts[pi] + PARTS[pi].questions.filter((q) => q.type !== "info").length - 1}`;
-
-  // Короткие фразы озвучиваются надёжнее: длинные реплики Chrome иногда обрывает.
-  const sentences = (t) => (t.match(/[^.!?]+[.!?]+["'”’]?|[^.!?]+$/g) || [t]).map((s) => s.trim()).filter(Boolean);
-
-  /* ---------- Движок озвучки ---------- */
-  function createEngine() {
-    let token = 0;
-    let started = false;
-
-    function sayOnce(text, cast, rate) {
-      return new Promise((resolve) => {
-        const u = new SpeechSynthesisUtterance(text);
-        if (cast && cast.voice) { u.voice = cast.voice; u.lang = cast.voice.lang; } else u.lang = "en-GB";
-        u.pitch = cast ? cast.pitch : 1;
-        u.rate = rate;
-        let done = false;
-        const finish = (err) => { if (done) return; done = true; clearTimeout(guard); resolve(err || null); };
-        // Страховка: в некоторых браузерах событие onend иногда не приходит.
-        const guard = setTimeout(() => finish(), 5000 + (text.length * 120) / rate);
-        u.onstart = () => { started = true; };
-        u.onend = () => finish();
-        u.onerror = (e) => finish(e.error || "error");
-        synth.speak(u);
-      });
-    }
-
-    async function run(steps, from, { onStep, onTick, rate }) {
-      const my = ++token;
-      for (let i = from; i < steps.length; i++) {
-        if (my !== token) return { cancelled: true };
-        const st = steps[i];
-        onStep(i, st);
-        if (st.type === "wait") {
-          const end = Date.now() + st.ms;
-          for (let left = end - Date.now(); left > 0; left = end - Date.now()) {
-            if (my !== token) return { cancelled: true };
-            onTick(Math.ceil(left / 1000), st);
-            await sleep(Math.min(250, left));
-          }
-        } else {
-          for (const s of sentences(st.text)) {
-            if (my !== token) return { cancelled: true };
-            const err = await sayOnce(s, st.cast, rate());
-            if (my !== token) return { cancelled: true };
-            if (err && err !== "interrupted" && err !== "canceled") return { error: err, started };
-          }
-        }
-      }
-      return my === token ? { done: true } : { cancelled: true };
-    }
-
-    function cancel() { token++; if (synth) synth.cancel(); }
-    // iOS/Safari разрешают звук только в ответ на нажатие — «будим» синтезатор прямо в обработчике клика.
-    function unlock() { try { synth.cancel(); synth.speak(Object.assign(new SpeechSynthesisUtterance(" "), { volume: 0 })); } catch { /* ignore */ } }
-    return { run, cancel, unlock, get started() { return started; } };
-  }
-
-  // Голоса подбираются один раз на страницу: у каждой части свои говорящие, диктор общий.
-  let casting = null;
-  function castFor(part) {
-    if (!casting || casting.voiceCount !== voices.list.length) {
-      const perPart = PARTS.map((p) => voices.cast(p.speakers));
-      casting = { voiceCount: voices.list.length, perPart, narrator: voices.narrator(perPart) };
-    }
-    return { ...casting.perPart[PARTS.indexOf(part)], N: casting.narrator };
-  }
-
-  function buildSteps(partIdxs, { exam }) {
-    const steps = [];
-    partIdxs.forEach((pi, k) => {
-      const part = PARTS[pi];
-      const cast = castFor(part);
-      if (exam) {
-        steps.push({ type: "say", text: part.intro, cast: cast.N, part: pi, narr: true });
-        steps.push({ type: "wait", ms: LISTENING.readSeconds * 1000, part: pi, label: `Прочитайте вопросы ${range(pi)}` });
-      }
-      part.script.forEach(([sp, text], li) => steps.push({ type: "say", text, cast: cast[sp], part: pi, line: li, speaker: sp }));
-      if (exam) {
-        steps.push({ type: "say", text: `That is the end of Part ${pi + 1}.`, cast: cast.N, part: pi, narr: true });
-        if (k < partIdxs.length - 1) steps.push({ type: "wait", ms: LISTENING.gapSeconds * 1000, part: pi, label: "Пауза перед следующей частью" });
-      }
-    });
-    if (exam) steps.push({ type: "say", text: "That is the end of the listening test.", cast: castFor(PARTS[0]).N, part: partIdxs[partIdxs.length - 1], narr: true });
-    return steps;
-  }
-
-  // Примерная длительность: ~150 слов в минуту плюс паузы.
-  function estimateMinutes(steps) {
-    let sec = 0;
-    steps.forEach((s) => { sec += s.type === "wait" ? s.ms / 1000 : (s.text.split(/\s+/).length / (150 * BASE_RATE)) * 60 + 0.4; });
-    return Math.round(sec / 60);
-  }
-
-  const transcriptHtml = (pi, clickable) => {
-    const part = PARTS[pi];
-    const names = Object.fromEntries(part.speakers.map((s) => [s.id, s.name]));
-    return `<ol class="transcript" lang="en">${part.script.map(([sp, t], li) =>
-      `<li data-line="${li}">${clickable ? `<button class="line-btn" data-line="${li}" aria-label="Слушать с этой реплики">▶</button>` : ""}<b>${esc(names[sp])}:</b> ${esc(t)}</li>`).join("")}</ol>`;
-  };
-
-  const questionsHtml = (pi) => `
-    <section class="card part-block" data-part="${pi}" id="part-${pi}" aria-labelledby="ph-${pi}">
-      <div class="row between">
-        <h2 class="card-title" id="ph-${pi}">Part ${pi + 1} · Questions ${range(pi)}</h2>
-        <span class="badge">${esc(PARTS[pi].kind)}</span>
-      </div>
-      <div lang="en">${renderQuestions(PARTS[pi].questions, { prefix: `p${pi}q`, start: starts[pi] })}</div>
-      <div class="part-result" aria-live="polite"></div>
-    </section>`;
-
-  /* ---------- Состояние голосов ---------- */
-  async function voiceStatus(el, { onReady }) {
-    if (!voices.supported || !synth) {
-      el.innerHTML = `<div class="notice bad"><b>Озвучка не поддерживается этим браузером.</b> Откройте сайт в Chrome, Edge или Safari. Пока можно тренироваться по транскрипту в режиме «Тренировка».</div>`;
-      return onReady(false);
-    }
-    el.innerHTML = '<div class="notice">Загружаем голоса для озвучки…</div>';
-    const list = await voices.ready();
-    const en = voices.english();
-    if (!list.length) {
-      el.innerHTML = `<div class="notice bad"><b>Голоса для озвучки не загрузились.</b> Обновите страницу. Если не поможет — установите английский голос в настройках системы
-        (Windows: «Время и язык → Речь», Android: «Синтез речи», macOS: «Универсальный доступ → Устной контент»).
-        <button class="btn sm secondary" id="vTry">Попробовать всё равно</button></div>`;
-      $("#vTry", el).onclick = () => { el.innerHTML = '<div class="notice">Пробуем голос по умолчанию.</div>'; onReady(true); };
-      // Голоса могут прийти позже — тогда обновим сообщение.
-      const late = () => { synth.removeEventListener("voiceschanged", late); voiceStatus(el, { onReady }); };
-      synth.addEventListener("voiceschanged", late);
-      onLeave(() => synth.removeEventListener("voiceschanged", late));
-      return onReady(false);
-    }
-    const gb = en.filter((v) => /GB/i.test(v.lang)).length;
-    const note = !en.length
-      ? "Английский голос не найден — текст прочитает голос по умолчанию, произношение может быть неточным."
-      : gb ? `Британских голосов: ${gb}. Разные говорящие озвучиваются разными голосами.` : "Британский голос не найден — используем другой английский.";
-    el.innerHTML = `<div class="notice ok">🔊 ${note}</div>`;
-    onReady(true);
-  }
+  const { app, esc, $, $$, tabs, bar, checkQuestions, resetQuestions, rawToBand, saveBest, onLeave, onKey, activity } = App;
+  const { BASE_RATE, createEngine, createSet, estimateMinutes, voiceStatus } = App.listen;
+  const set = createSet(LISTENING);
+  const PARTS = set.parts;
+  const TOTAL = set.total;
+  const { buildSteps, transcriptHtml } = set;
+  const questionsHtml = (pi) => set.questionsHtml(pi);
 
   /* ---------- Страница ---------- */
   App.pages.listening = (param = "") => {
@@ -304,6 +163,7 @@
       });
       const band = rawToBand(score, BAND_TABLES.listening);
       saveBest("listening:exam", score, TOTAL);
+      activity.task("listening");
       $("#lResult").innerHTML = `<div class="result">Результат: ${score} / ${TOTAL} — Band ${band.toFixed(1)}</div>
         <p class="muted small">По частям: ${perPart.map((s, i) => `Part ${i + 1} — ${s}`).join(", ")}. Правильные ответы и тексты записей — под каждой частью.</p>`;
       $("#lCheck").disabled = true;
@@ -440,6 +300,7 @@
     $("#pCheck").onclick = () => {
       const { score, total } = checkQuestions($("#pQs"), part.questions, { prefix: `p${pi}q` });
       saveBest("listening:" + part.id, score, total);
+      activity.task("listening");
       $("#pResult").innerHTML = `<div class="result">Результат: ${score} / ${total}</div>`;
       if (!checked) { checked = true; showScript(); }
     };
