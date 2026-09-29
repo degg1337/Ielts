@@ -1,7 +1,7 @@
 /* Вкладка «Мои слова»: добавление по одному, массовый импорт (текст или файл), экспорт в CSV. */
 (() => {
   "use strict";
-  const { esc, $, store, nextFrame, download } = App;
+  const { esc, $, store, download } = App;
   const V = App.vocab;
 
   const LIMITS = { w: 80, ru: 200, ex: 300, ipa: 80 };
@@ -38,8 +38,8 @@
   function splitLine(line) {
     if (line.includes("\t")) return line.split("\t");
     if (line.includes(";")) return splitCsv(line, ";");
-    if (/\s[-–—]\s/.test(line)) {
-      const [w, ru, ...rest] = line.split(/\s+[-–—]\s+/);
+    if (/\s[-–—](\s|$)/.test(line)) {
+      const [w, ru, ...rest] = line.split(/\s+[-–—](?:\s+|$)/);
       return rest.length ? [w, ru, rest.join(" - ")] : [w, ru];
     }
     if (/[–—]/.test(line)) return line.split(/\s*[–—]\s*/);
@@ -75,15 +75,21 @@
 
   const keyOf = (w) => w.toLowerCase().replace(/\s+/g, " ").trim();
 
-  // Разбор порциями, чтобы большой список не подвешивал страницу.
+  // Разбор порциями: каждые ~12 мс отдаём управление браузеру, чтобы большой список не подвешивал страницу.
+  const yieldToBrowser = () => new Promise((r) => setTimeout(r, 0));
   async function parseText(text, onProgress) {
     const lines = text.replace(/^﻿/, "").split(/\r\n|\n|\r/);
     const known = V.knownWords();
     const seen = new Map();
     const res = { ok: [], dups: [], errors: [], hasTopicCol: false, lines: 0 };
     let headerChecked = false;
+    let sliceStart = performance.now();
     for (let i = 0; i < lines.length; i++) {
-      if (i && i % 1500 === 0) { onProgress(i, lines.length); await nextFrame(); }
+      if (performance.now() - sliceStart > 12) {
+        onProgress(i, lines.length);
+        await yieldToBrowser();
+        sliceStart = performance.now();
+      }
       const line = lines[i].trim();
       if (!line || line.startsWith("#")) continue;
       res.lines++;
@@ -293,7 +299,10 @@
       text.value = await readFile(file);
       runParse();
     }
-    $("#impFile").onchange = (e) => loadFile(e.target.files[0]);
+    $("#impFile").onchange = (e) => {
+      loadFile(e.target.files[0]);
+      e.target.value = ""; // чтобы повторный выбор того же файла снова сработал
+    };
     text.addEventListener("dragover", (e) => { e.preventDefault(); text.classList.add("drag"); });
     text.addEventListener("dragleave", () => text.classList.remove("drag"));
     text.addEventListener("drop", (e) => {
