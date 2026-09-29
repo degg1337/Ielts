@@ -162,47 +162,66 @@
 
   pages.home = () => {
     const best = store.get("best", {});
-    const known = store.get("vocabKnown", []).length;
     const essays = Object.keys(store.get("drafts", {})).length;
+    const srs = loadSrs();
+    const topics = vocabTopics().filter((t) => t.words.length);
+    const words = topics.flatMap((t) => t.words);
+    const vs = topicStats(words, srs);
     const bestRow = (key, label) => {
       const b = best[key];
-      return `<li>${label}: ${b ? `<b>${b.score}/${b.total}</b> <span class="muted small">(${b.date})</span>` : '<span class="muted">ещё не решали</span>'}</li>`;
+      return `<li><span>${label}</span>${b ? `<b>${b.score}/${b.total}</b>` : '<span class="muted small">ещё не решали</span>'}</li>`;
     };
 
     app.innerHTML = `
-      <section class="card hero">
-        <h1>Подготовка к IELTS</h1>
-        <p>Практика всех четырёх частей экзамена: Reading, Listening, Writing и Speaking. Таймеры как на настоящем экзамене, автопроверка ответов, словарь академической лексики и калькулятор итогового балла.</p>
+      <section class="hero">
+        <div class="hero-text">
+          <span class="hero-kicker">Academic · General Training</span>
+          <h1>Подготовка к IELTS без стресса</h1>
+          <p>Практика всех четырёх частей экзамена: таймеры как на настоящем тесте, автопроверка ответов, тренажёр слов по темам и калькулятор итогового балла.</p>
+          <div class="row">
+            <a class="btn light" href="#reading">Начать с Reading</a>
+            <a class="btn outline-light" href="#vocab">Учить слова</a>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div><b>${words.length}</b><span>слов по темам</span></div>
+          <div><b>4</b><span>части экзамена</span></div>
+          <div><b>${vs.learned}</b><span>вы уже выучили</span></div>
+        </div>
       </section>
 
-      <div class="grid">
-        <a class="card tile" href="#reading"><div class="icon">📖</div><h3>Reading</h3><p>Академические тексты, вопросы TRUE/FALSE/NOT GIVEN, выбор ответа, пропуски. 20 минут на текст.</p></a>
-        <a class="card tile" href="#listening"><div class="icon">🎧</div><h3>Listening</h3><p>Диалоги и монологи с озвучкой, заполнение форм. Можно слушать только один раз — как на экзамене.</p></a>
-        <a class="card tile" href="#writing"><div class="icon">✍️</div><h3>Writing</h3><p>Task 1 и Task 2 с таймером, счётчиком слов, полезными фразами и чек-листом по критериям.</p></a>
-        <a class="card tile" href="#speaking"><div class="icon">🗣️</div><h3>Speaking</h3><p>Вопросы Part 1, карточки Part 2 с таймером подготовки, Part 3 и запись своего ответа.</p></a>
-        <a class="card tile" href="#vocab"><div class="icon">🃏</div><h3>Словарь</h3><p>${VOCAB.length} академических слов с переводом и примерами. Флэш-карточки.</p></a>
-        <a class="card tile" href="#calc"><div class="icon">🧮</div><h3>Калькулятор</h3><p>Перевод сырых баллов в band и расчёт итоговой оценки Overall.</p></a>
+      <div class="grid tiles">
+        <a class="card tile" href="#reading"><div class="icon c1">📖</div><h3>Reading</h3><p>Академические тексты, TRUE/FALSE/NOT GIVEN, выбор ответа, пропуски. 20 минут на текст.</p></a>
+        <a class="card tile" href="#listening"><div class="icon c2">🎧</div><h3>Listening</h3><p>Диалоги и монологи с озвучкой. Можно слушать только один раз — как на экзамене.</p></a>
+        <a class="card tile" href="#writing"><div class="icon c3">✍️</div><h3>Writing</h3><p>Task 1 и Task 2 с таймером, счётчиком слов, полезными фразами и чек-листом.</p></a>
+        <a class="card tile" href="#speaking"><div class="icon c4">🗣️</div><h3>Speaking</h3><p>Part 1, карточки Part 2 с таймером подготовки, Part 3 и запись своего ответа.</p></a>
+        <a class="card tile" href="#vocab"><div class="icon c5">🃏</div><h3>Тренажёр слов</h3><p>Карточки с интервальным повторением, тест, ${topics.length} тем и свои слова.</p></a>
+        <a class="card tile" href="#calc"><div class="icon c6">🧮</div><h3>Калькулятор</h3><p>Перевод сырых баллов в band и расчёт итоговой оценки Overall.</p></a>
       </div>
 
       <h2>Ваш прогресс</h2>
       <div class="grid">
         <div class="card">
           <h3>Лучшие результаты</h3>
-          <ul>
+          <ul class="best-list">
             ${READING.map((r) => bestRow("reading:" + r.id, "Reading — " + esc(r.title))).join("")}
             ${LISTENING.map((l) => bestRow("listening:" + l.id, "Listening — " + esc(l.title))).join("")}
           </ul>
+          <p class="muted small">Сохранённых черновиков эссе: <b>${essays}</b></p>
         </div>
         <div class="card">
-          <h3>Словарь и эссе</h3>
-          <p>Выучено слов: <b>${known}</b> из ${VOCAB.length}</p>
-          <div class="progress"><div style="width:${Math.round((known / VOCAB.length) * 100)}%"></div></div>
-          <p>Сохранённых черновиков эссе: <b>${essays}</b></p>
+          <div class="row between"><h3>Словарь</h3><a class="small" href="#vocab/topics">Подробнее →</a></div>
+          <p>Выучено <b>${vs.learned}</b> из ${vs.total} слов</p>
+          ${topics.map((t) => {
+            const s = topicStats(t.words, srs);
+            const pct = Math.round((s.learned / s.total) * 100);
+            return `<div class="mini-bar"><span>${t.icon} ${esc(t.name)}</span><div class="progress"><div style="width:${pct}%"></div></div><span class="muted small">${s.learned}/${s.total}</span></div>`;
+          }).join("")}
         </div>
       </div>
 
       <h2>Формат экзамена</h2>
-      <div class="card chart-box">
+      <div class="card table-wrap">
         <table class="data">
           <tr><th>Часть</th><th>Время</th><th>Задания</th></tr>
           <tr><td>Listening</td><td>~30 мин (+10 мин на перенос в бумажной версии)</td><td>4 части, 40 вопросов</td></tr>
@@ -675,106 +694,483 @@
     };
   }
 
+  /* ---------- Тренажёр слов ---------- */
+  // Простое интервальное повторение (система Лейтнера): у каждого слова есть «коробка» 0–6.
+  // 0 — новое, 1 — не знаю, чем выше коробка, тем реже слово показывается. С коробки 3 слово считается выученным.
+  const LEARNED_BOX = 3;
+  const MAX_BOX = 6;
+  const MIN = 60 * 1000;
+  const DAY = 24 * 60 * MIN;
+  const INTERVALS = [0, MIN, 10 * MIN, DAY, 3 * DAY, 7 * DAY, 21 * DAY];
+  const SESSION_SIZE = 20;
+  const QUIZ_SIZE = 10;
+
+  function vocabTopics() {
+    const topics = WORD_TOPICS.map((t) => ({
+      ...t,
+      words: t.words.map(([w, ipa, ru, ex]) => ({ id: w.toLowerCase(), w, ipa, ru, ex, topic: t.id }))
+    }));
+    const custom = store.get("customWords", []);
+    topics.push({ id: "custom", name: "My words", ru: "Мои слова", icon: "⭐", words: custom.map((c) => ({ ...c, topic: "custom" })) });
+    return topics;
+  }
+
+  function loadSrs() {
+    const srs = store.get("srs", {});
+    // Перенос прогресса из старой версии словаря (список выученных слов).
+    if (!store.get("srsMigrated", false)) {
+      store.get("vocabKnown", []).forEach((w) => {
+        const id = w.toLowerCase();
+        if (!srs[id]) srs[id] = { box: LEARNED_BOX, due: Date.now() + DAY };
+      });
+      store.set("srs", srs);
+      store.set("srsMigrated", true);
+    }
+    return srs;
+  }
+
+  const wordState = (srs, id) => srs[id] || { box: 0, due: 0 };
+  const isLearned = (srs, id) => wordState(srs, id).box >= LEARNED_BOX;
+
+  function recordAnswer(srs, id, knew, { fromQuiz = false } = {}) {
+    const now = Date.now();
+    const st = { ...wordState(srs, id) };
+    if (knew) {
+      // Новое слово, которое уже знаешь, сразу уходит в «выученные»; в тесте угадать проще, поэтому скромнее.
+      if (st.box === 0) st.box = fromQuiz ? 2 : LEARNED_BOX;
+      else if (st.due <= now) st.box = Math.min(MAX_BOX, st.box + 1);
+      st.due = now + INTERVALS[st.box];
+    } else {
+      st.box = 1;
+      st.due = now;
+    }
+    srs[id] = st;
+    store.set("srs", srs);
+  }
+
+  function topicStats(words, srs) {
+    let learned = 0, learning = 0;
+    words.forEach((w) => {
+      const b = wordState(srs, w.id).box;
+      if (b >= LEARNED_BOX) learned++;
+      else if (b > 0) learning++;
+    });
+    return { total: words.length, learned, learning };
+  }
+
+  // Слова, которые знаешь хуже, выпадают чаще.
+  function weightedSample(words, srs, n) {
+    const pool = words.map((w) => ({ w, weight: MAX_BOX + 1 - wordState(srs, w.id).box }));
+    const out = [];
+    while (out.length < n && pool.length) {
+      let r = Math.random() * pool.reduce((s, p) => s + p.weight, 0);
+      let i = 0;
+      while ((r -= pool[i].weight) > 0) i++;
+      out.push(pool.splice(i, 1)[0].w);
+    }
+    return out;
+  }
+
+  function whenText(ms) {
+    const diff = ms - Date.now();
+    if (diff < MIN) return "через минуту";
+    if (diff < 60 * MIN) return `через ${Math.ceil(diff / MIN)} мин`;
+    if (diff < DAY) return `через ${Math.ceil(diff / (60 * MIN))} ч`;
+    return `через ${Math.ceil(diff / DAY)} дн`;
+  }
+
+  function statusBadge(srs, id) {
+    const b = wordState(srs, id).box;
+    if (b >= LEARNED_BOX) return '<span class="badge ok">выучено</span>';
+    if (b > 0) return '<span class="badge warn">изучаю</span>';
+    return '<span class="badge">новое</span>';
+  }
+
   pages.vocab = (param) => {
-    const mode = param === "list" ? "list" : "cards";
+    const mode = ["cards", "quiz", "topics", "add"].includes(param) ? param : "cards";
+    const srs = loadSrs();
+    const topics = vocabTopics();
+    const allWords = topics.flatMap((t) => t.words);
+    let topicId = store.get("vocabTopic", "all");
+    if (topicId !== "all" && !topics.some((t) => t.id === topicId && t.words.length)) topicId = "all";
+
     app.innerHTML = `
-      <h1>Академический словарь</h1>
-      <p class="lead">Слова, которые часто встречаются в Reading и помогают поднять оценку за Lexical Resource в Writing и Speaking.</p>`;
-    app.appendChild(tabs([{ id: "cards", label: "Карточки" }, { id: "list", label: "Список" }], mode, (id) => { location.hash = "vocab/" + id; }));
+      <h1>Тренажёр слов</h1>
+      <p class="lead">${allWords.length} слов по темам IELTS с транскрипцией и примерами. Слова, которые вы не знаете, повторяются чаще.</p>`;
+    app.appendChild(tabs([
+      { id: "cards", label: "🃏 Карточки" },
+      { id: "quiz", label: "✅ Тест" },
+      { id: "topics", label: "📊 Темы и прогресс" },
+      { id: "add", label: "➕ Мои слова" }
+    ], mode, (id) => { location.hash = "vocab/" + id; }));
 
     const wrap = document.createElement("div");
+    wrap.className = "fade-in";
     app.appendChild(wrap);
-    const known = new Set(store.get("vocabKnown", []));
-    const saveKnown = () => store.set("vocabKnown", Array.from(known));
 
-    if (mode === "list") {
-      wrap.innerHTML = `
-        <div class="card">
-          <input id="vSearch" class="tab" style="width:100%;border-radius:10px;padding:10px 14px" placeholder="Поиск по слову или переводу…">
-        </div>
-        <div class="card chart-box"><table class="data" id="vTable"></table></div>`;
-      const render = () => {
-        const q = norm($("#vSearch").value);
-        const rows = VOCAB.filter(([w, , ru]) => !q || w.includes(q) || ru.toLowerCase().includes(q));
-        $("#vTable").innerHTML = `<tr><th>Слово</th><th>Перевод</th><th>Пример</th><th>Знаю</th></tr>` +
-          rows.map(([w, pos, ru, ex]) => `<tr>
-            <td style="text-align:left"><b>${esc(w)}</b> <span class="muted small">${esc(pos)}</span></td>
-            <td style="text-align:left">${esc(ru)}</td>
-            <td style="text-align:left" class="muted">${esc(ex)}</td>
-            <td><input type="checkbox" data-w="${esc(w)}" ${known.has(w) ? "checked" : ""}></td></tr>`).join("");
-      };
-      $("#vSearch").oninput = render;
-      $("#vTable").addEventListener("change", (e) => {
-        const w = e.target.dataset.w;
-        if (!w) return;
-        e.target.checked ? known.add(w) : known.delete(w);
-        saveKnown();
+    const topicWords = () => (topicId === "all" ? allWords : topics.find((t) => t.id === topicId).words);
+
+    const topicPicker = (onChange) => {
+      const el = document.createElement("div");
+      el.className = "chips";
+      const items = [{ id: "all", icon: "🌐", name: "Все темы" }, ...topics.filter((t) => t.words.length)];
+      el.innerHTML = items.map((t) =>
+        `<button class="chip ${t.id === topicId ? "active" : ""}" data-id="${t.id}">${t.icon} ${esc(t.name)}</button>`).join("");
+      el.addEventListener("click", (e) => {
+        const b = e.target.closest(".chip");
+        if (!b) return;
+        topicId = b.dataset.id;
+        store.set("vocabTopic", topicId);
+        $$(".chip", el).forEach((c) => c.classList.toggle("active", c === b));
+        onChange();
       });
-      render();
-      return;
+      return el;
+    };
+
+    const onKey = (handler) => {
+      const h = (e) => {
+        if (e.target.closest("input, textarea, select")) return;
+        // Пробел и Enter на кнопке браузер и так превращает в клик.
+        if ((e.key === " " || e.key === "Enter") && e.target.closest("button, a")) return;
+        handler(e);
+      };
+      document.addEventListener("keydown", h);
+      onLeave(() => document.removeEventListener("keydown", h));
+    };
+
+    if (mode === "cards") renderCards();
+    else if (mode === "quiz") renderQuiz();
+    else if (mode === "topics") renderTopics();
+    else renderAdd();
+
+    function renderCards() {
+      const body = document.createElement("div");
+      wrap.append(topicPicker(start), body);
+      let queue = [];
+      let done = 0;
+      let flipped = false;
+
+      function start(practice = false) {
+        const words = topicWords();
+        const now = Date.now();
+        if (practice) {
+          queue = weightedSample(words, srs, SESSION_SIZE);
+        } else {
+          const due = words.filter((w) => { const s = wordState(srs, w.id); return s.box > 0 && s.due <= now; })
+            .sort((a, b) => wordState(srs, a.id).box - wordState(srs, b.id).box);
+          const fresh = shuffle(words.filter((w) => wordState(srs, w.id).box === 0));
+          queue = [...due, ...fresh].slice(0, SESSION_SIZE);
+        }
+        done = 0;
+        show();
+      }
+
+      function show() {
+        const words = topicWords();
+        const st = topicStats(words, srs);
+        const pct = st.total ? Math.round((st.learned / st.total) * 100) : 0;
+        const head = `
+          <div class="card stat-row">
+            <div><div class="stat-num">${st.learned}<span>/${st.total}</span></div><div class="muted small">выучено</div></div>
+            <div><div class="stat-num">${st.learning}</div><div class="muted small">изучаю</div></div>
+            <div><div class="stat-num">${queue.length}</div><div class="muted small">осталось в сессии</div></div>
+            <div class="stat-bar"><div class="progress"><div style="width:${pct}%"></div></div><div class="muted small">${pct}% темы</div></div>
+          </div>`;
+
+        if (!queue.length) {
+          const next = words.map((w) => wordState(srs, w.id)).filter((s) => s.box > 0).map((s) => s.due).sort((a, b) => a - b)[0];
+          body.innerHTML = head + `
+            <div class="card empty-state">
+              <div class="big-emoji">🎉</div>
+              <h3>${done ? `Сессия окончена: повторено ${done} слов` : "Все слова на сегодня повторены"}</h3>
+              <p class="muted">${next ? `Следующее повторение ${whenText(next)}.` : "Выберите другую тему или потренируйтесь ещё."}</p>
+              <div class="row center">
+                <button class="btn" id="vAgain">Тренироваться ещё</button>
+                <a class="btn secondary" href="#vocab/quiz">Пройти тест</a>
+              </div>
+            </div>`;
+          $("#vAgain").onclick = () => start(true);
+          return;
+        }
+
+        const w = queue[0];
+        const topic = topics.find((t) => t.id === w.topic);
+        flipped = false;
+        body.innerHTML = head + `
+          <div class="flash-wrap">
+            <div class="flash" id="vCard" tabindex="0" role="button" aria-label="Перевернуть карточку">
+              <div class="flash-face flash-front">
+                <span class="badge">${topic.icon} ${esc(topic.name)}</span>
+                <div class="word">${esc(w.w)}</div>
+                <div class="muted small">нажмите, чтобы увидеть перевод</div>
+              </div>
+              <div class="flash-face flash-back">
+                <div class="word sm">${esc(w.w)}</div>
+                ${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ""}
+                <div class="ru">${esc(w.ru)}</div>
+                ${w.ex ? `<div class="ex">“${esc(w.ex)}”</div>` : ""}
+              </div>
+            </div>
+            <div class="row center card-actions">
+              <button class="btn danger" id="vNo">✗ Не знаю</button>
+              <button class="btn icon-btn secondary" id="vSay" title="Произнести">🔊</button>
+              <button class="btn success" id="vYes">✓ Знаю</button>
+            </div>
+            <p class="muted small center">Пробел — перевернуть · ← не знаю · → знаю</p>
+          </div>`;
+        const card = $("#vCard");
+        card.onclick = flip;
+        $("#vSay").onclick = () => speak(w.w);
+        $("#vYes").onclick = () => answer(true);
+        $("#vNo").onclick = () => answer(false);
+      }
+
+      function flip() {
+        flipped = !flipped;
+        $("#vCard").classList.toggle("flipped", flipped);
+      }
+
+      function answer(knew) {
+        const w = queue.shift();
+        recordAnswer(srs, w.id, knew);
+        if (knew) done++;
+        // Незнакомое слово возвращается через пару карточек.
+        else queue.splice(Math.min(3, queue.length), 0, w);
+        show();
+      }
+
+      onKey((e) => {
+        if (!queue.length || !$("#vCard")) return;
+        if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); }
+        else if (e.key === "ArrowRight") answer(true);
+        else if (e.key === "ArrowLeft") answer(false);
+      });
+      start();
     }
 
-    wrap.innerHTML = `
-      <div class="card">
-        <div class="row" style="justify-content:space-between">
-          <label class="small"><input type="checkbox" id="vOnlyNew" checked> Показывать только невыученные</label>
-          <span class="small muted" id="vStat"></span>
-        </div>
-        <div class="progress"><div id="vBar"></div></div>
-      </div>
-      <div class="flash-wrap">
-        <div class="flash" id="vCard">
-          <div class="flash-face flash-front"></div>
-          <div class="flash-face flash-back"></div>
-        </div>
-        <p class="muted small" style="text-align:center">Нажмите на карточку, чтобы перевернуть</p>
-        <div class="row" style="justify-content:center">
-          <button class="btn secondary" id="vNo">Повторить ещё</button>
-          <button class="btn" id="vYes">Знаю ✔</button>
-          <button class="btn secondary" id="vSay">🔊</button>
-        </div>
-      </div>`;
+    function renderQuiz() {
+      const body = document.createElement("div");
+      wrap.append(topicPicker(start), body);
+      let questions = [];
+      let qi = 0;
+      let score = 0;
+      let mistakes = [];
+      let answered = false;
 
-    const cardEl = $("#vCard");
-    let deck = [];
-    let idx = 0;
-
-    const stat = () => {
-      $("#vStat").textContent = `Выучено: ${known.size} / ${VOCAB.length}`;
-      $("#vBar").style.width = `${(known.size / VOCAB.length) * 100}%`;
-    };
-    const build = () => {
-      const pool = $("#vOnlyNew").checked ? VOCAB.filter((v) => !known.has(v[0])) : VOCAB;
-      deck = shuffle(pool);
-      idx = 0;
-      show();
-    };
-    const show = () => {
-      stat();
-      cardEl.classList.remove("flipped");
-      const front = $(".flash-front", cardEl);
-      const back = $(".flash-back", cardEl);
-      if (!deck.length) {
-        front.innerHTML = `<div class="word">🎉</div><p>Все слова выучены! Снимите галочку «только невыученные», чтобы повторить.</p>`;
-        back.innerHTML = "";
-        return;
+      function start() {
+        const words = topicWords();
+        if (words.length < 2) {
+          body.innerHTML = `<div class="card empty-state"><p>В этой теме слишком мало слов для теста.</p></div>`;
+          return;
+        }
+        questions = weightedSample(words, srs, QUIZ_SIZE).map((w) => {
+          // Варианты берём из той же темы, чтобы было сложнее; если слов мало — из всех.
+          const source = words.length >= 4 ? words : allWords;
+          const wrong = shuffle(source.filter((o) => o.ru !== w.ru)).reduce((acc, o) => {
+            if (acc.length < 3 && !acc.includes(o.ru)) acc.push(o.ru);
+            return acc;
+          }, []);
+          return { w, options: shuffle([w.ru, ...wrong]) };
+        });
+        qi = 0; score = 0; mistakes = [];
+        show();
       }
-      const [w, pos, ru, ex] = deck[idx % deck.length];
-      front.innerHTML = `<div class="word">${esc(w)}</div><div class="pos">${esc(pos)}</div>`;
-      back.innerHTML = `<div class="ru">${esc(ru)}</div><div class="ex">“${esc(ex)}”</div>`;
-    };
-    cardEl.onclick = () => cardEl.classList.toggle("flipped");
-    $("#vYes").onclick = () => {
-      if (!deck.length) return;
-      known.add(deck[idx % deck.length][0]);
-      saveKnown();
-      if ($("#vOnlyNew").checked) deck.splice(idx % deck.length, 1); else idx++;
-      show();
-    };
-    $("#vNo").onclick = () => { if (!deck.length) return; idx++; show(); };
-    $("#vSay").onclick = () => { if (deck.length) speak(deck[idx % deck.length][0]); };
-    $("#vOnlyNew").onchange = build;
-    build();
+
+      function show() {
+        if (qi >= questions.length) return finish();
+        answered = false;
+        const { w, options } = questions[qi];
+        body.innerHTML = `
+          <div class="card quiz">
+            <div class="row between">
+              <span class="muted small">Вопрос ${qi + 1} из ${questions.length}</span>
+              <span class="badge ok">Верно: ${score}</span>
+            </div>
+            <div class="progress"><div style="width:${(qi / questions.length) * 100}%"></div></div>
+            <div class="quiz-word">${esc(w.w)} <button class="btn icon-btn secondary" id="qSay" title="Произнести">🔊</button></div>
+            ${w.ipa ? `<div class="ipa center">${esc(w.ipa)}</div>` : ""}
+            <p class="muted center">Выберите правильный перевод</p>
+            <div class="options">
+              ${options.map((o, i) => `<button class="option" data-i="${i}"><span class="key">${i + 1}</span>${esc(o)}</button>`).join("")}
+            </div>
+            <div id="qFeedback"></div>
+          </div>`;
+        $("#qSay").onclick = () => speak(w.w);
+        $$(".option", body).forEach((b) => { b.onclick = () => choose(Number(b.dataset.i)); });
+      }
+
+      function choose(i) {
+        if (answered) return;
+        answered = true;
+        const { w, options } = questions[qi];
+        const ok = options[i] === w.ru;
+        if (ok) score++; else mistakes.push(w);
+        recordAnswer(srs, w.id, ok, { fromQuiz: true });
+        $$(".option", body).forEach((b, k) => {
+          b.disabled = true;
+          if (options[k] === w.ru) b.classList.add("correct");
+          else if (k === i) b.classList.add("wrong");
+        });
+        $("#qFeedback").innerHTML = `
+          <div class="feedback ${ok ? "ok" : "bad"}">
+            <b>${ok ? "Верно!" : "Неверно."}</b> ${esc(w.w)} — ${esc(w.ru)}
+            ${w.ex ? `<div class="ex">“${esc(w.ex)}”</div>` : ""}
+          </div>
+          <div class="row center"><button class="btn" id="qNext">${qi + 1 < questions.length ? "Далее →" : "Результат"}</button></div>`;
+        $("#qNext").onclick = () => { qi++; show(); };
+        $("#qNext").focus();
+      }
+
+      function finish() {
+        const pct = Math.round((score / questions.length) * 100);
+        body.innerHTML = `
+          <div class="card empty-state">
+            <div class="big-emoji">${pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "💪"}</div>
+            <h3>Результат: ${score} из ${questions.length} (${pct}%)</h3>
+            ${mistakes.length ? `<p class="muted">Эти слова будут показываться чаще в карточках:</p>
+              <ul class="mistakes">${mistakes.map((w) => `<li><b>${esc(w.w)}</b> — ${esc(w.ru)}</li>`).join("")}</ul>` : "<p class=\"muted\">Без ошибок — отлично!</p>"}
+            <div class="row center">
+              <button class="btn" id="qAgain">Пройти ещё раз</button>
+              <a class="btn secondary" href="#vocab/cards">К карточкам</a>
+            </div>
+          </div>`;
+        $("#qAgain").onclick = start;
+      }
+
+      onKey((e) => {
+        if (!questions.length || qi >= questions.length) return;
+        if (!answered && /^[1-4]$/.test(e.key)) choose(Number(e.key) - 1);
+        else if (answered && e.key === "Enter" && document.activeElement !== $("#qNext")) $("#qNext").click();
+      });
+      start();
+    }
+
+    function renderTopics() {
+      const all = topicStats(allWords, srs);
+      wrap.innerHTML = `
+        <div class="card stat-row">
+          <div><div class="stat-num">${all.learned}<span>/${all.total}</span></div><div class="muted small">слов выучено</div></div>
+          <div><div class="stat-num">${all.learning}</div><div class="muted small">изучаю</div></div>
+          <div><div class="stat-num">${all.total - all.learned - all.learning}</div><div class="muted small">новых</div></div>
+          <div class="stat-bar"><div class="progress"><div style="width:${all.total ? (all.learned / all.total) * 100 : 0}%"></div></div>
+            <div class="muted small">Слово считается выученным после нескольких ответов «Знаю» с перерывами.</div></div>
+        </div>
+        <div class="grid">
+          ${topics.map((t) => {
+            const s = topicStats(t.words, srs);
+            const pct = s.total ? Math.round((s.learned / s.total) * 100) : 0;
+            return `<div class="card topic-card">
+              <div class="row between"><span class="topic-icon">${t.icon}</span><span class="muted small">${pct}%</span></div>
+              <h3>${esc(t.name)}</h3>
+              <p class="muted small">${esc(t.ru)} · ${s.learned} из ${s.total} выучено${s.learning ? ` · ${s.learning} изучаю` : ""}</p>
+              <div class="progress"><div style="width:${pct}%"></div></div>
+              ${s.total ? `<div class="row">
+                <button class="btn sm" data-go="cards" data-t="${t.id}">Карточки</button>
+                <button class="btn sm secondary" data-go="quiz" data-t="${t.id}">Тест</button>
+                <button class="btn sm ghost" data-list="${t.id}">Слова</button>
+              </div>` : '<a class="btn sm secondary" href="#vocab/add">Добавить слова</a>'}
+            </div>`;
+          }).join("")}
+        </div>
+        <div id="vList"></div>`;
+
+      wrap.addEventListener("click", (e) => {
+        const go = e.target.closest("[data-go]");
+        if (go) {
+          store.set("vocabTopic", go.dataset.t);
+          location.hash = "vocab/" + go.dataset.go;
+          return;
+        }
+        const lb = e.target.closest("[data-list]");
+        if (!lb) return;
+        const t = topics.find((x) => x.id === lb.dataset.list);
+        $("#vList").innerHTML = `
+          <div class="card">
+            <div class="row between"><h3>${t.icon} ${esc(t.name)} — все слова</h3>
+              <input id="vSearch" class="input" placeholder="Поиск…" style="max-width:220px"></div>
+            <div class="table-wrap"><table class="data words-table" id="vTable"></table></div>
+          </div>`;
+        const renderRows = () => {
+          const q = norm($("#vSearch").value);
+          const rows = t.words.filter((w) => !q || w.w.toLowerCase().includes(q) || w.ru.toLowerCase().includes(q));
+          $("#vTable").innerHTML = `<tr><th>Слово</th><th>Перевод</th><th>Пример</th><th>Статус</th></tr>` +
+            rows.map((w) => `<tr>
+              <td><b>${esc(w.w)}</b><div class="ipa small">${esc(w.ipa || "")}</div></td>
+              <td>${esc(w.ru)}</td>
+              <td class="muted">${esc(w.ex || "")}</td>
+              <td>${statusBadge(srs, w.id)}</td></tr>`).join("");
+        };
+        $("#vSearch").oninput = renderRows;
+        renderRows();
+        $("#vList").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+
+    function renderAdd() {
+      wrap.innerHTML = `
+        <div class="card">
+          <h3>Добавить своё слово</h3>
+          <p class="muted small">Слова попадут в тему «⭐ My words» и будут участвовать в карточках и тестах.</p>
+          <form id="addForm" class="form-grid">
+            <label>Слово (англ.) *<input class="input" name="w" required maxlength="60" placeholder="e.g. resilient"></label>
+            <label>Перевод *<input class="input" name="ru" required maxlength="100" placeholder="напр. стойкий, устойчивый"></label>
+            <label>Транскрипция<input class="input" name="ipa" maxlength="60" placeholder="/rɪˈzɪliənt/"></label>
+            <label class="wide">Пример<input class="input" name="ex" maxlength="200" placeholder="Children are often more resilient than adults."></label>
+            <div class="wide row"><button class="btn" type="submit">Добавить</button><span id="addMsg" class="small"></span></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Мои слова <span class="muted small" id="myCount"></span></h3>
+          <div id="myList"></div>
+        </div>`;
+
+      const renderList = () => {
+        const custom = store.get("customWords", []);
+        $("#myCount").textContent = `(${custom.length})`;
+        $("#myList").innerHTML = custom.length
+          ? `<div class="table-wrap"><table class="data words-table"><tr><th>Слово</th><th>Перевод</th><th>Пример</th><th>Статус</th><th></th></tr>
+              ${custom.map((w) => `<tr>
+                <td><b>${esc(w.w)}</b><div class="ipa small">${esc(w.ipa || "")}</div></td>
+                <td>${esc(w.ru)}</td><td class="muted">${esc(w.ex || "")}</td>
+                <td>${statusBadge(srs, w.id)}</td>
+                <td><button class="btn sm ghost" data-del="${esc(w.id)}" title="Удалить">🗑</button></td></tr>`).join("")}
+            </table></div>`
+          : '<p class="muted">Пока пусто. Добавьте слова, которые встретили в текстах или фильмах.</p>';
+      };
+
+      $("#addForm").onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target;
+        const w = f.w.value.trim();
+        const ru = f.ru.value.trim();
+        const msg = $("#addMsg");
+        if (!w || !ru) return;
+        if (allWords.some((x) => x.w.toLowerCase() === w.toLowerCase()) ||
+            store.get("customWords", []).some((x) => x.w.toLowerCase() === w.toLowerCase())) {
+          msg.className = "small bad-text";
+          msg.textContent = `Слово «${w}» уже есть в словаре.`;
+          return;
+        }
+        const custom = store.get("customWords", []);
+        custom.unshift({ id: "my:" + Date.now(), w, ru, ipa: f.ipa.value.trim(), ex: f.ex.value.trim() });
+        store.set("customWords", custom);
+        f.reset();
+        f.w.focus();
+        msg.className = "small ok-text";
+        msg.textContent = `Добавлено: ${w}`;
+        renderList();
+      };
+
+      $("#myList").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-del]");
+        if (!b || !confirm("Удалить слово?")) return;
+        store.set("customWords", store.get("customWords", []).filter((w) => w.id !== b.dataset.del));
+        delete srs[b.dataset.del];
+        store.set("srs", srs);
+        renderList();
+      });
+      renderList();
+    }
   };
 
   pages.calc = () => {
@@ -822,16 +1218,41 @@
     const [name, param] = (location.hash.slice(1) || "home").split("/");
     const page = pages[name] ? name : "home";
     pages[page](param);
+    app.classList.remove("page-enter");
+    void app.offsetWidth; // перезапуск анимации появления
+    app.classList.add("page-enter");
     $$("nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === page));
-    $("#nav").classList.remove("open");
-    $("#menuBtn").setAttribute("aria-expanded", "false");
+    setMenu(false);
     window.scrollTo(0, 0);
   }
 
-  $("#menuBtn").onclick = () => {
-    const open = $("#nav").classList.toggle("open");
+  function setMenu(open) {
+    document.body.classList.toggle("menu-open", open);
     $("#menuBtn").setAttribute("aria-expanded", String(open));
+  }
+  $("#menuBtn").onclick = () => setMenu(!document.body.classList.contains("menu-open"));
+  $("#navBackdrop").onclick = () => setMenu(false);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
+
+  /* ---------- Тема ---------- */
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const currentTheme = () => document.documentElement.dataset.theme || (darkQuery.matches ? "dark" : "light");
+  function renderThemeBtn() {
+    const dark = currentTheme() === "dark";
+    const btn = $("#themeBtn");
+    btn.textContent = dark ? "☀️" : "🌙";
+    btn.setAttribute("aria-label", dark ? "Включить светлую тему" : "Включить тёмную тему");
+    btn.title = btn.getAttribute("aria-label");
+  }
+  $("#themeBtn").onclick = () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next);
+    renderThemeBtn();
   };
+  darkQuery.addEventListener("change", renderThemeBtn);
+  renderThemeBtn();
+
   window.addEventListener("hashchange", route);
   route();
 })();
