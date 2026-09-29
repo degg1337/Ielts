@@ -3,7 +3,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "3";
+  const VERSION = "4";
   const app = document.getElementById("app");
   const App = (window.App = { pages: {} });
 

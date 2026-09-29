@@ -370,7 +370,7 @@
       wrap.innerHTML = '<div class="loading" role="status">Загрузка…</div>';
       const s = document.createElement("script");
       if (App.vocabMine) return App.vocabMine(wrap, { srs, topics });
-      s.src = "js/pages/vocab-mine.js?v=3";
+      s.src = "js/pages/vocab-mine.js?v=4";
       s.onload = () => App.vocabMine(wrap, { srs, topics });
       s.onerror = () => { wrap.innerHTML = '<div class="card" role="alert">Не удалось загрузить раздел. Проверьте интернет и обновите страницу.</div>'; };
       document.head.appendChild(s);
