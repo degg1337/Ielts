@@ -1,7 +1,7 @@
 /* Калькулятор итогового балла IELTS. */
 (() => {
   "use strict";
-  const { app, $, $$, rawToBand } = App;
+  const { app, $, $$, rawToBand, roundBand } = App;
 
   App.pages.calc = () => {
     const bandOpts = Array.from({ length: 19 }, (_, i) => 9 - i * 0.5)
@@ -35,7 +35,7 @@
       const r = rawToBand(clamp($("#cR").value), rTable);
       const w = Number($("#cW").value);
       const s = Number($("#cS").value);
-      const overall = Math.round(((l + r + w + s) / 4) * 2) / 2;
+      const overall = roundBand((l + r + w + s) / 4);
       $("#cOut").textContent = overall.toFixed(1);
       $("#cDetail").innerHTML = `Listening: <b>${l.toFixed(1)}</b><br>Reading: <b>${r.toFixed(1)}</b><br>Writing: <b>${w.toFixed(1)}</b><br>Speaking: <b>${s.toFixed(1)}</b>`;
     };

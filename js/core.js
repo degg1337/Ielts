@@ -155,6 +155,63 @@
     return 0;
   }
 
+  // Округление как в IELTS: 6.25 → 6.5, 6.75 → 7, 6.125 → 6.
+  const roundBand = (x) => Math.round(x * 2) / 2;
+
+  /* ---------- Активность (для серии дней) ----------
+     activity: { "2026-09-29": { t: заданий, w: слов, wids: [id слов за сегодня] } }.
+     День засчитывается, если сделано хотя бы одно задание или отработано 10 слов. */
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const WORDS_FOR_DAY = 10;
+  const activity = {
+    WORDS_FOR_DAY,
+    dayKey,
+    log: () => store.get("activity", {}),
+    today() { return activity.log()[dayKey()] || { t: 0, w: 0 }; },
+    isActive: (e) => !!e && (e.t >= 1 || e.w >= WORDS_FOR_DAY),
+    _update(fn) {
+      const log = { ...activity.log() };
+      const key = dayKey();
+      const day = { t: 0, w: 0, ...(log[key] || {}) };
+      fn(day);
+      // Списки слов храним только за сегодня — за прошлые дни достаточно числа.
+      Object.keys(log).forEach((k) => { if (k !== key && log[k].wids) { log[k] = { ...log[k] }; delete log[k].wids; } });
+      log[key] = day;
+      store.set("activity", log);
+      activity.streak(); // обновляет рекорд
+    },
+    task(kind) { activity._update((d) => { d.t += 1; d.k = { ...(d.k || {}), [kind]: ((d.k || {})[kind] || 0) + 1 }; }); },
+    word(id) {
+      activity._update((d) => {
+        const ids = d.wids ? d.wids.slice() : [];
+        if (!ids.includes(id)) ids.push(id);
+        d.wids = ids;
+        d.w = ids.length;
+      });
+    },
+    // Текущая серия: считаем дни подряд до сегодня. Если сегодня ещё не занимались, серия со вчера не сгорает до конца дня.
+    streak() {
+      const log = activity.log();
+      const d = new Date();
+      let current = 0;
+      const todayActive = activity.isActive(log[dayKey(d)]);
+      if (!todayActive) d.setDate(d.getDate() - 1);
+      while (activity.isActive(log[dayKey(d)])) { current++; d.setDate(d.getDate() - 1); }
+      // Рекорд — самая длинная серия в журнале; храним отдельно, чтобы он не пропал.
+      let best = 0, run = 0, prev = null;
+      Object.keys(log).filter((k) => activity.isActive(log[k])).sort().forEach((k) => {
+        const t = new Date(k + "T12:00:00");
+        run = prev && Math.round((t - prev) / 86400000) === 1 ? run + 1 : 1;
+        best = Math.max(best, run);
+        prev = t;
+      });
+      best = Math.max(best, current, store.get("bestStreak", 0));
+      if (best !== store.get("bestStreak", 0)) store.set("bestStreak", best);
+      return { current, best, todayActive };
+    }
+  };
+
   function saveBest(key, score, total) {
     const best = store.get("best", {});
     const prev = best[key];
@@ -185,7 +242,7 @@
       } else if (q.type === "gap") {
         input = `<input type="text" name="${name}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ваш ответ" aria-labelledby="${labelId}">`;
       } else {
-        const opts = q.type === "para" ? letters : q.type === "match" ? q.options.split("") : SELECT_OPTS[q.type];
+        const opts = q.type === "para" ? letters : q.type === "match" ? (Array.isArray(q.options) ? q.options : q.options.split("")) : SELECT_OPTS[q.type];
         input = `<select name="${name}" aria-labelledby="${labelId}"><option value="">—</option>${opts.map((o) => `<option>${o}</option>`).join("")}</select>`;
       }
       return `<div class="q" data-i="${i}">
@@ -336,13 +393,15 @@
   const DATA = (n) => `js/data/${n}.js`;
   const PAGE = (n) => `js/pages/${n}.js`;
   const ROUTES = {
-    home: [DATA("reading"), DATA("listening"), DATA("words"), "js/vocab-core.js", PAGE("home")],
+    home: [DATA("reading"), DATA("listening"), DATA("words"), "js/vocab-core.js", "js/plan-core.js", PAGE("home")],
     reading: [DATA("reading"), DATA("bands"), PAGE("reading")],
-    listening: [DATA("listening"), DATA("bands"), PAGE("listening")],
+    listening: [DATA("listening"), DATA("bands"), "js/listen-engine.js", PAGE("listening")],
     writing: [DATA("writing"), PAGE("writing")],
     speaking: [DATA("speaking"), PAGE("speaking")],
     vocab: [DATA("words"), "js/vocab-core.js", PAGE("vocab")],
-    calc: [DATA("bands"), PAGE("calc")]
+    calc: [DATA("bands"), PAGE("calc")],
+    exam: [DATA("exams"), DATA("bands"), "js/listen-engine.js", "js/charts.js", PAGE("exam")],
+    plan: ["js/plan-core.js", PAGE("plan")]
   };
   const scripts = {};
 
@@ -456,8 +515,8 @@
   renderThemeBtn();
 
   Object.assign(App, {
-    app, esc, $, $$, norm, pick, shuffle, bar, download, sleep,
-    store, onLeave, onKey, makeTimer, rawToBand, saveBest,
+    app, esc, $, $$, norm, pick, shuffle, bar, download, sleep, fmtTime, dayKey,
+    store, onLeave, onKey, makeTimer, rawToBand, roundBand, saveBest, activity, loadScript,
     renderQuestions, checkQuestions, resetQuestions, tabs,
     voices, speak, beep
   });
