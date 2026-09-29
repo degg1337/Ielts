@@ -724,7 +724,8 @@ table.data tr:last-child td { border-bottom: none; }
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--primary), var(--primary-2));
-  transition: width .6s var(--ease);
+  transform-origin: left center;
+  transition: transform .6s var(--ease);
 }
 
 /* ---------- Калькулятор ---------- */
@@ -755,4 +756,107 @@ table.data tr:last-child td { border-bottom: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Служебные классы ---------- */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  transform: translateY(-150%);
+  transition: transform .2s var(--ease);
+}
+.skip-link:focus { transform: none; text-decoration: none; }
+main:focus { outline: none; }
+h1:focus { outline: none; }
+.mt { margin-top: 16px; }
+.mt-lg { margin-top: 20px; }
+.mb { margin-bottom: 12px; }
+.mb-sm { margin: 0 0 8px; }
+.gap-xl { gap: 32px; }
+.card-title { font-size: 1.1rem; margin: 0 0 8px; }
+.select-pill { border-radius: 999px; padding: 9px 36px 9px 16px; max-width: 100%; }
+.select-pill.block { display: block; margin: 6px 0 12px; width: 100%; }
+.notes { min-height: 100px; margin-top: 16px; }
+.big-q.sm { font-size: 1.1rem; margin: 0; }
+.phrase-head { margin: 10px 0 4px; }
+.search { max-width: 240px; }
+.loading { padding: 48px 0; text-align: center; color: var(--muted); }
+.opt-list { margin: 8px 0 0; padding-left: 0; list-style: none; columns: 2; column-gap: 24px; }
+.opt-list li { break-inside: avoid; padding: 2px 0; }
+@media (max-width: 560px) { .opt-list { columns: 1; } }
+.q .opt { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.q .opt input { margin-top: 5px; flex-shrink: 0; }
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface);
+  font: inherit;
+  font-size: .82em;
+}
+
+/* ---------- Listening ---------- */
+.notice {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: .94rem;
+}
+.notice.ok { background: var(--ok-soft); border-color: transparent; }
+.notice.bad { background: var(--warn-soft); border-color: transparent; }
+.notice .btn { margin-left: 6px; margin-top: 6px; }
+.rules { margin: 8px 0 18px; padding-left: 20px; }
+.rules li { margin-bottom: 6px; }
+.player-bar {
+  position: sticky;
+  top: 76px;
+  z-index: 5;
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+.player-status { font-family: var(--font-head); font-weight: 700; font-size: 1.05rem; }
+.player-bar .progress { margin-bottom: 0; }
+.part-block { scroll-margin-top: 190px; }
+.part-block.current { border-color: var(--primary); }
+.player-controls { margin: 12px 0 8px; }
+.play-btn { min-width: 150px; }
+.rate-label { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.transcript { margin: 8px 0 0; padding-left: 0; list-style: none; }
+.transcript li { display: flex; gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 10px; }
+.transcript li b { white-space: nowrap; }
+.transcript li.now { background: var(--primary-soft); }
+.line-btn {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: .75rem;
+}
+.line-btn:hover { border-color: var(--primary); }
+.transcript-box { margin-top: 10px; }
+.transcript-box summary { cursor: pointer; font-weight: 600; color: var(--primary); padding: 6px 0; }
+@media (max-width: 640px) {
+  .player-bar { top: 68px; }
+  .rate-label { margin-left: 0; }
+  .play-btn { min-width: 0; flex: 1; }
 }
